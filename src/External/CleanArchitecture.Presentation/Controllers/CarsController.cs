@@ -1,4 +1,7 @@
 ﻿using CleanArchitecture.Application.Features.CarFeatures.Commands.CreateCar;
+using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCar;
+using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCarById;
+using CleanArchitecture.Domain.Dtos;
 using CleanArchitecture.Presentation.Abstracts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +17,23 @@ namespace CleanArchitecture.Presentation.Controllers
         [HttpPost("[action]")]
         public async Task<IActionResult> Create([FromBody] CreateCarCommand command, CancellationToken cancellationToken)
         {
-            if (command == null)
-            {
-                return BadRequest("Gönderilen değer boş olamaz.");
-            }
-            var response = await _mediator.Send(command);
+            var response = await _mediator.Send(command, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("[action]/{pageIndex}/{pageSize}")]
+        public async Task<IActionResult> Get(CancellationToken cancellationToken, int pageIndex = 1, int pageSize = 12)
+        {
+            var query = new GetCarsQuery(new PaginationRequest(pageIndex, pageSize));
+            var response = await _mediator.Send(query, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("[action]/{id}")]
+        public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
+        {
+            var query = new GetCarByIdQuery(id);
+            var response = await _mediator.Send(query, cancellationToken);
             return Ok(response);
         }
     }
