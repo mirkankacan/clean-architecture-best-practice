@@ -1,49 +1,19 @@
-using CleanArchitecture.Application;
-using CleanArchitecture.Application.Behaviours;
-using CleanArchitecture.Application.Services;
-using CleanArchitecture.Persistance.Context;
-using CleanArchitecture.Persistance.Services;
-using CleanArchitecture.WebApi.Middlewares;
-using FluentValidation;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
+using CleanArchitecture.Application.Extensions;
+using CleanArchitecture.Infrastructure.Extensions;
+using CleanArchitecture.Persistance.Extensions;
+using CleanArchitecture.WebApi.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-string connectionString = builder.Configuration.GetConnectionString("SqlConnection")!;
-builder.Services.AddDbContext<AppDbContext>(opts => opts.UseSqlServer(connectionString));
-builder.Services.AddTransient<ExceptionMiddleware>();
+// Add services to the container using extension methods
+builder.Services.AddPersistanceServices(builder.Configuration);
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddWebApiServices();
 
-builder.Services.AddMediatR(cfr =>
-{
-    cfr.RegisterServicesFromAssembly(typeof(CleanArchitecture.Application.AssemblyReference).Assembly);
-});
-builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
-builder.Services.AddValidatorsFromAssembly(typeof(AssemblyReference).Assembly);
-
-builder.Services.AddControllers()
-    .AddApplicationPart(assembly: typeof(CleanArchitecture.Presentation.AssemblyReference).Assembly);
-
-builder.Services.AddScoped<ICarService, CarService>();
-
-builder.Services.AddAutoMapper(typeof(CleanArchitecture.Application.AssemblyReference).Assembly);
-// Add Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer(); // Gerekli
-builder.Services.AddSwaggerGen();           // Swagger yapýlandýrmasý
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();                        // Swagger JSON endpoint
-    app.UseSwaggerUI();                      // Swagger UI
-}
-app.UseMiddlewareExtensions();
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
+// Configure the HTTP request pipeline
+app.UseWebApiMiddlewares();
 
 app.Run();

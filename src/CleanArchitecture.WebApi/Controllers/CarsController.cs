@@ -2,11 +2,11 @@
 using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCar;
 using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCarById;
 using CleanArchitecture.Domain.Dtos;
-using CleanArchitecture.Presentation.Abstracts;
+using CleanArchitecture.WebApi.Abstracts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace CleanArchitecture.Presentation.Controllers
+namespace CleanArchitecture.WebApi.Controllers
 {
     public sealed class CarsController : ApiController
     {
@@ -22,7 +22,7 @@ namespace CleanArchitecture.Presentation.Controllers
         }
 
         [HttpGet("[action]/{pageIndex}/{pageSize}/{search}")]
-        public async Task<IActionResult> Get(CancellationToken cancellationToken,  int pageIndex = 1,  int pageSize = 12, string search = "")
+        public async Task<IActionResult> Get(CancellationToken cancellationToken, int pageIndex = 1, int pageSize = 12, string search = "")
         {
             var query = new GetCarsQuery(new PaginationRequest(pageIndex, pageSize, search));
             var response = await _mediator.Send(query, cancellationToken);
