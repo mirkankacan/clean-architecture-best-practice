@@ -13,11 +13,11 @@ namespace CleanArchitecture.WebApi.Extensions
                 app.UseSwaggerUI();
             }
 
-            app.UseMiddlewareExtensions();
+            app.UseMiddleware<ExceptionMiddleware>();
             app.UseHttpsRedirection();
 
             // Routing Configuration
-            app.UseAuthorization();
+
             app.MapControllers();
 
             return app;

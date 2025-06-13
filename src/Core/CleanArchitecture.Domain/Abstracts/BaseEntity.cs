@@ -1,4 +1,4 @@
-﻿namespace CleanArchitecture.Domain.Absracts
+﻿namespace CleanArchitecture.Domain.Abstracts
 {
     public abstract class BaseEntity
     {

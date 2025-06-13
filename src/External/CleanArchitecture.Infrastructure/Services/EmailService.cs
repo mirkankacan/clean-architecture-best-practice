@@ -8,9 +8,9 @@ namespace CleanArchitecture.Infrastructure.Services
 {
     public sealed class EmailService : IEmailService
     {
-        private readonly EmailConfigurationDto _config;
+        private readonly EmailOptionsDto _config;
 
-        public EmailService(IOptions<EmailConfigurationDto> config)
+        public EmailService(IOptions<EmailOptionsDto> config)
         {
             _config = config.Value;
         }
@@ -77,6 +77,11 @@ namespace CleanArchitecture.Infrastructure.Services
 
         private SmtpClient CreateSmtpClient()
         {
+            Console.WriteLine($"SMTP Host: {_config.SmtpHost}");
+            Console.WriteLine($"SMTP Port: {_config.SmtpPort}");
+            Console.WriteLine($"Enable SSL: {_config.EnableSsl}");
+            Console.WriteLine($"Username: {_config.Username}");
+            Console.WriteLine($"Has Password: {!string.IsNullOrEmpty(_config.Password)}");
             var client = new SmtpClient(_config.SmtpHost, _config.SmtpPort)
             {
                 EnableSsl = _config.EnableSsl,

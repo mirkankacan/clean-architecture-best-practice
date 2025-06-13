@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-using CleanArchitecture.Domain.Absracts;
+using CleanArchitecture.Domain.Abstracts;
 using CleanArchitecture.Domain.Entities;
 using GenericRepository;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;

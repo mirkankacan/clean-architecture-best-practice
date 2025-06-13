@@ -2,12 +2,14 @@
 using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCar;
 using CleanArchitecture.Application.Features.CarFeatures.Queries.GetCarById;
 using CleanArchitecture.Domain.Dtos;
+using CleanArchitecture.Infrastructure.Authorization;
 using CleanArchitecture.WebApi.Abstracts;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CleanArchitecture.WebApi.Controllers
 {
+    [RoleFilter("Admin", "User")]
     public sealed class CarsController : ApiController
     {
         public CarsController(IMediator mediator) : base(mediator)
