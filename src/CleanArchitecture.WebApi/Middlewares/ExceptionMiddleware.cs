@@ -1,16 +1,16 @@
-﻿using CleanArchitecture.Domain.Entities;
-using CleanArchitecture.Persistance.Context;
+﻿using System.Net;
+using CleanArchitecture.WebApi.Constants;
 using FluentValidation;
 
 namespace CleanArchitecture.WebApi.Middlewares
 {
     public sealed class ExceptionMiddleware : IMiddleware
     {
-        private readonly AppDbContext _context;
+        private readonly Serilog.ILogger _logger = Serilog.Log.ForContext<ExceptionMiddleware>();
 
-        public ExceptionMiddleware(AppDbContext context)
+        public ExceptionMiddleware()
         {
-            _context = context;
+            // No need to inject ILogger since we're using Serilog's static Log
         }
 
         public async Task InvokeAsync(HttpContext context, RequestDelegate next)
@@ -21,49 +21,74 @@ namespace CleanArchitecture.WebApi.Middlewares
             }
             catch (Exception ex)
             {
-                await LogExceptionToDatabaseAsync(ex, context.Request);
-
+                await LogExceptionAsync(context, ex); // Fixed: was context.ex
                 await HandleExceptionAsync(context, ex);
             }
         }
 
-        private Task HandleExceptionAsync(HttpContext context, Exception ex)
+        private async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-            context.Response.ContentType = "application/json";
+            var response = context.Response;
+            response.ContentType = "application/json";
 
-            if (ex.GetType() == typeof(ValidationException))
+            var errorResponse = ex switch
             {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                context.Response.ContentType = "application/json";
-
-                var errorResponse = new
+                ValidationException validationEx => new ErrorResponse
                 {
-                    statusCode = 400,
-                    errors = ((ValidationException)ex).Errors.Select(e => e.ErrorMessage).Distinct().ToArray()
-                };
-
-                return context.Response.WriteAsJsonAsync(errorResponse);
-            }
-
-            return context.Response.WriteAsJsonAsync(new
-            {
-                statusCode = context.Response.StatusCode,
-                message = ex.Message
-            });
-        }
-
-        private async Task LogExceptionToDatabaseAsync(Exception ex, HttpRequest request)
-        {
-            ErrorLog errorLog = new ErrorLog
-            {
-                ErrorMessage = ex.Message,
-                StackTrace = ex.StackTrace,
-                RequestPath = request.Path,
-                RequestMethod = request.Method
+                    StatusCode = (int)HttpStatusCode.BadRequest,
+                    Message = ErrorMessages.ValidationFailed,
+                    Errors = validationEx.Errors.Select(e => e.ErrorMessage).Distinct().ToArray()
+                },
+                ArgumentException => new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.BadRequest,
+                    Message = ErrorMessages.InvalidArgument
+                },
+                UnauthorizedAccessException => new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.Unauthorized,
+                    Message = ErrorMessages.UnauthorizedAccess
+                },
+                KeyNotFoundException => new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.NotFound,
+                    Message = ErrorMessages.ResourceNotFound
+                },
+                TimeoutException => new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.RequestTimeout,
+                    Message = ErrorMessages.RequestTimeout
+                },
+                _ => new ErrorResponse
+                {
+                    StatusCode = (int)HttpStatusCode.InternalServerError,
+                    Message = ErrorMessages.InternalServerError
+                }
             };
-            await _context.Set<ErrorLog>().AddAsync(errorLog);
-            await _context.SaveChangesAsync();
+
+            response.StatusCode = errorResponse.StatusCode;
+            await response.WriteAsJsonAsync(errorResponse);
         }
+
+        private Task LogExceptionAsync(HttpContext context, Exception ex)
+        {
+            var request = context.Request;
+
+            _logger.Error(ex,
+                "{RemoteIpAddress} adresinden gelen {Method} {Path} isteği işlenirken istisna oluştu. TraceId: {TraceId}",
+                context.Connection.RemoteIpAddress, // Fixed: parameter order
+                request.Method,
+                request.Path,
+                context.TraceIdentifier);
+
+            return Task.CompletedTask;
+        }
+    }
+
+    public class ErrorResponse
+    {
+        public int StatusCode { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string[]? Errors { get; set; }
     }
 }

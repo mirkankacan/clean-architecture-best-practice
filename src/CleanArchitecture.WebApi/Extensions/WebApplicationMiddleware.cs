@@ -1,4 +1,5 @@
 ﻿using CleanArchitecture.WebApi.Middlewares;
+using Serilog;
 
 namespace CleanArchitecture.WebApi.Extensions
 {
@@ -13,12 +14,15 @@ namespace CleanArchitecture.WebApi.Extensions
                 app.UseSwaggerUI();
             }
 
+            app.UseCors();
             app.UseMiddleware<ExceptionMiddleware>();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
             app.UseHttpsRedirection();
 
-            // Routing Configuration
-
             app.MapControllers();
+            app.Lifetime.ApplicationStopping.Register(Log.CloseAndFlush);
 
             return app;
         }
